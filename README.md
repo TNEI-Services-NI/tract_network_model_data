@@ -27,7 +27,7 @@ Getting started
 
 ----------------------------------
 
-# Running tract_network_model_data
+# Running tract_network_model_data repo
 
 ----------------------------------
 
