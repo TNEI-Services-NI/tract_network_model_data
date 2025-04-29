@@ -27,7 +27,7 @@ Getting started
 
 ----------------------------------
 
-# Running...repo_name...
+# Running tract_network_model_data
 
 ----------------------------------
 
