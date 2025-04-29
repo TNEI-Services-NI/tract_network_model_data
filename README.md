@@ -80,20 +80,5 @@ rtneitemplate/
 # Email
 Delete where appropriate...
 
-Gordon McFadzean - Principal Consultant\
-<gordon.mcfadzean@tneigroup.com>
-
-Dr. Diptargha Chakravorty - Principal Consultant\
-<diptargha.chakravorty@tneigroup.com>
-
-Dr. Gruffudd Edwards - Senior Consultant\
-<gruffudd.edwards@tneigroup.com>
-
-Sarah Sheehy - Senior Consultant\
-<sarah.sheehy@tneigroup.com>
-
-Max McFarlane - Senior Consultant\
-<max.mcfarlane@tneigroup.com>
-
-Owen Patrick - Graduate Consultant\
-<owen.patrick@tneigroup.com>
+Nathanael Sims - Principal Consultant\
+<nathanael.sims@tneigroup.com>
