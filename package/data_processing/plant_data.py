@@ -258,43 +258,30 @@ def add_etys_node(df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd.DataFrame:
         node_name_prefix4 = node_name[:4]
         partial_matches4 = nodes_df[nodes_df["Node"].str[:4] == node_name_prefix4]
         if not partial_matches4.empty:
-            # Apply advanced selection based on 5th character and capacity
             capacity = max(
                 row.get("MW_Capacity", 0) or 0,
                 row.get("MW_Import_Capacity", 0) or 0,
-                row.get("MW_Export_Capacity", 0) or 0
+                row.get("MW_Export_Capacity", 0)
             )
 
-            # Add a column extracting the 5th character as an integer
             partial_matches4 = partial_matches4.copy()
-            partial_matches4["5th_digit"] = partial_matches4["Node"].str[4].astype(str)
+            partial_matches4["5th_digit"] = partial_matches4["Node"].str[4]
+            # Try to convert 5th digit to integer, invalid ones become NaN
+            partial_matches4["5th_digit_num"] = pd.to_numeric(partial_matches4["5th_digit"], errors="coerce")
 
             if capacity > GEN_CAPACITY_FOR_TRANSMISSION:
                 # Prefer 5th digit = 2 or 4
-                first_node = partial_matches4.iloc[0]["Node"]
-                first_node_5th_digit = first_node[4]
-
-                if first_node_5th_digit in ["2", "4"]:
-                    return first_node
-                else:
-                    preferred = partial_matches4[partial_matches4["5th_digit"].isin(["2", "4"])]
-                    if not preferred.empty:
-                        return preferred.iloc[0]["Node"]
-                    else:
-                        return first_node
+                preferred = partial_matches4[partial_matches4["5th_digit"].isin(["2", "4"])]
+                candidates = preferred if not preferred.empty else partial_matches4
             else:
-                # Prefer NOT 2 or 4 if capacity <= GEN_CAPACITY_FOR_TRANSMISSION
-                first_node = partial_matches4.iloc[0]["Node"]
-                first_node_5th_digit = first_node[4]
+                # Prefer NOT 2 or 4
+                non_preferred = partial_matches4[~partial_matches4["5th_digit"].isin(["2", "4"])]
+                candidates = non_preferred if not non_preferred.empty else partial_matches4
 
-                if first_node_5th_digit not in ["2", "4"]:
-                    return first_node
-                else:
-                    non_preferred = partial_matches4[~partial_matches4["5th_digit"].isin(["2", "4"])]
-                    if not non_preferred.empty:
-                        return non_preferred.iloc[0]["Node"]
-                    else:
-                        return first_node
+            # Sort candidates by 5th_digit_num (largest first), fall back to original order if NaNs
+            candidates_sorted = candidates.sort_values(by="5th_digit_num", ascending=False, na_position='last')
+
+            return candidates_sorted.iloc[0]["Node"]
 
         # No matches at all
         logger.warning(
@@ -303,6 +290,7 @@ def add_etys_node(df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd.DataFrame:
         )
         return None
 
+    # Apply the function
     df["ETYS_Node"] = df.apply(lookup_etys_node, axis=1)
 
     # Check if the 5th digit is problematic for high capacity (>GEN_CAPACITY_FOR_TRANSMISSION)
@@ -325,9 +313,6 @@ def add_etys_node(df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd.DataFrame:
             )
 
     return df
-    # add code to:
-    # 2) sort the partial matches such that the highest voltage is picked based on the criteria unless explicitly defined
-
 
 def process_plant_data() -> Dict[str, pd.DataFrame]:
     """
