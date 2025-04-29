@@ -1,7 +1,7 @@
-TNEI Template Repository
+GB Power System Model Data
 ========================
 
-This is a repository template for TNEI projects.
+Welcome to the repository for ETYS network data collation, processing and sorting ready for feeding into a power system model for analysis.
 
 Getting started 
 =============================
@@ -34,51 +34,43 @@ Getting started
 ### File Tree
 
 ```
-rtneitemplate/
-├── data/
-│   └── .gitignore
-├── docs/
-│   └── .gitignore
-├── output/
-│   └── .gitignore
-├── R/
-├── ├── subpackage1
-│   │   └ .gitignore
-│   └── subpackage2
-│       └ .gitignore
-├── rtemplatetnei.Rproj
-└── README.md
+tract_network_model_data/
+├── docs/                            # Documentation (empty or not expanded)
+├── package/
+│   ├── data_processing/             # Core data processing logic
+│   │   ├── __init__.py
+│   │   ├── intra_hvdc.py
+│   │   ├── load_data.py
+│   │   ├── network_data.py
+│   │   └── plant_data.py
+│   ├── input_data/                 # Input datasets
+│   │   ├── etys_appendix_b_2024.xlsx
+│   │   ├── fes_2024_active_power_demand_data.csv
+│   │   ├── ic_register_mapping.csv
+│   │   ├── interconnector_register_04feb2025.csv
+│   │   ├── internal_hvdc_etysappb2024.csv
+│   │   ├── substation_coordinates.csv
+│   │   ├── tec_register_04feb2025.csv
+│   │   └── tec_register_mapping.csv
+│   └── output_data/               # Output data following scripts
+│       ├── __init__.py
+│       ├── config.py
+│       └── main.py
+├── tests/                           # Unit tests and validation
+│   ├── __init__.py
+│   ├── context.py
+│   ├── isolated_nodes_network_data.py
+│   ├── test_advanced.py
+│   └── test_basic.py
+├── LICENSE
+├── main.py
+├── README.md
+├── requirements.txt
 ```
 
 # Directory
-1. Documentation\
- `docs`
- 
-2. Production Code:\
- &nbsp;&nbsp;&nbsp;`...repo_name...`\
- \
-2.1 User Interface:\
-&nbsp;&nbsp;&nbsp;`...repo_name...->app`\
-&nbsp;&nbsp;&nbsp;This will contain code used for operating the model through a user interface.\
- \
-2.2 Data I/O:\
-&nbsp;&nbsp;&nbsp;`...repo_name...->data`\
-&nbsp;&nbsp;&nbsp;This will be used to store and access input data.\
-
-3. Process Code:\
-&nbsp;&nbsp;&nbsp;`process`\
-&nbsp;&nbsp;&nbsp;This directory contains scripts for fetching and processing input data\
- \
-3.1 Sub-model:\
-&nbsp;&nbsp;&nbsp;`process->...sub-model...`\
-&nbsp;&nbsp;&nbsp;This code processes and merges GSP, Ninja and Zone demand/generation data.\
-
-4. WIP Code:\
-&nbsp;&nbsp;&nbsp;`research`\
-&nbsp;&nbsp;&nbsp;This subpackage contains code being used for research and testing.
+TBC
 
 # Email
-Delete where appropriate...
-
 Nathanael Sims - Principal Consultant\
 <nathanael.sims@tneigroup.com>
