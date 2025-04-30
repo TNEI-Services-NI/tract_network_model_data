@@ -8,10 +8,17 @@ class Config:
         # ---------------------------
         self.YEAR_OF_ANALYSIS = YEAR_OF_ANALYSIS
         self.FES_SCENARIO = "HT"
+        # Applies to demand only
+        # "HT" = Holistic Transition, "HE" = Hydrogen Evolution, "EE" = Electric Engagement
         self.CONSIDER_DEMAND_TYPES = ["R", "E", "C", "I", "H", "D", "T", "Z"]
+        # "R" = Residential, "E" = Electric Vehicles, "C" = Commercial, "I" = Industrial, "H" = Heat pumps, "D" = District heat, "T" = Transmission direct connects, "Z" = Electrolysers
         self.SELECTED_TAGS = {'NGET'}
+        # 'SHET', 'SPT', 'NGET', 'OFTO'
+        # Note: 'OFTO' should be selected ONLY if 'SHET', 'SPT' and 'NGET' are also selected, to avoid isolated OFTO nodes.
         self.IGNORE_DER = 1
+        # 1 = YES, 0 = NO
         self.GEN_CAPACITY_FOR_TRANSMISSION = 100
+        # MW capacity at which point the generator is considered to be connected to 275/400kV network by default.
 
         # ---------------------------
         # Other Settings
