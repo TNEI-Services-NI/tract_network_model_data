@@ -6,15 +6,16 @@ Associates ETYS node name to each row.
 
 import os
 import pandas as pd
-from package import config
 import logging
 from package.data_processing.network_data import get_network_data
 from typing import Optional
+from package.config import Config
 
 # Configure logging per best practice.
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+config = Config()
 
 def lookup_etys_node(gsp: Optional[str], nodes_df: pd.DataFrame) -> Optional[str]:
     """

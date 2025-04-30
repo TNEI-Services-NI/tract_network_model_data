@@ -10,18 +10,14 @@ warnings.filterwarnings("ignore", message="Cannot parse header or footer so it w
 import pandas as pd
 import logging
 from typing import Dict, List, Set, Any, Tuple
-from package.config import (
-    ETYSB_FILE_PATH,
-    COORDINATES_FILE_PATH,
-    SHEET_ASSOCIATIONS,
-    SELECTED_TAGS,
-    YEAR_OF_ANALYSIS,
-    NETWORK_OUTPUT_FILE_PATH
-)
+from package.config import Config
+
 
 # Configure logging to include timestamps, log level and message.
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+config = Config()
 
 # ============================================================================
 # Constants for sheet names and column mapping
@@ -279,7 +275,7 @@ def compile_node_info(*dfs: pd.DataFrame) -> pd.DataFrame:
     data = []
     for node, sheets in node_info.items():
         sheet_list = sorted(sheets)
-        relevant_to_set = {SHEET_ASSOCIATIONS.get(s[-1], "Unknown") for s in sheet_list if s}
+        relevant_to_set = {config.SHEET_ASSOCIATIONS.get(s[-1], "Unknown") for s in sheet_list if s}
         data.append({
             "Node": node,
             "Voltage (Derived)": derive_voltage(node),
@@ -342,14 +338,14 @@ def add_coordinates_and_site_name_to_nodes(nodes_df: pd.DataFrame,
     :param nodes_df: DataFrame with node information.
     :param coordinates_file: Path to the CSV file containing coordinates.
     :param site_name_mapping: Mapping of site codes to site names.
-    :return: Enhanced nodes DataFrame with latitude, longitude, and site names.
+    :return: Enhanced nodes DataFrame with latitude, longitude, type and indoor/outdoor (both taken from NGET public portal).
     """
     try:
         coords_df = pd.read_csv(coordinates_file)
         nodes_df["Site_Code"] = nodes_df["Node"].astype(str).str[:4]
         merged_df = pd.merge(
             nodes_df,
-            coords_df[["Site Code", "latitude", "longitude"]],
+            coords_df[["Site Code", "latitude", "longitude", "Type", "Indoor/Outdoor"]],
             left_on="Site_Code",
             right_on="Site Code",
             how="left"
@@ -376,19 +372,19 @@ def get_network_data() -> Dict[str, Any]:
     :return: Dictionary with the processed network data.
     """
     # Parse all sheets from the Excel file.
-    all_sheets_data = parse_all_sheets(ETYSB_FILE_PATH, COLUMN_RENAME_MAP)
+    all_sheets_data = parse_all_sheets(config.ETYSB_FILE_PATH, COLUMN_RENAME_MAP)
     # Build site name mapping using index sheets.
     site_name_mapping = compile_site_name_mapping(all_sheets_data, INDEX_SHEETS)
     # Filter sheets based on associations and selected tags.
-    relevant_sheets_data = filter_relevant_sheets_data(all_sheets_data, SHEET_ASSOCIATIONS, SELECTED_TAGS)
+    relevant_sheets_data = filter_relevant_sheets_data(all_sheets_data, config.SHEET_ASSOCIATIONS, config.SELECTED_TAGS)
     if not relevant_sheets_data:
         raise ValueError("No relevant sheets found.")
 
     # Concatenate and filter data.
     circuit_data, transformer_data, reactive_data = concatenate_and_process_sheets(relevant_sheets_data)
-    circuit_data_filtered = filter_data_based_on_status_and_year(circuit_data, YEAR_OF_ANALYSIS)
-    transformer_data_filtered = filter_data_based_on_status_and_year(transformer_data, YEAR_OF_ANALYSIS)
-    reactive_data_filtered = filter_data_based_on_status_and_year(reactive_data, YEAR_OF_ANALYSIS, is_reactive=True)
+    circuit_data_filtered = filter_data_based_on_status_and_year(circuit_data, config.YEAR_OF_ANALYSIS)
+    transformer_data_filtered = filter_data_based_on_status_and_year(transformer_data, config.YEAR_OF_ANALYSIS)
+    reactive_data_filtered = filter_data_based_on_status_and_year(reactive_data, config.YEAR_OF_ANALYSIS, is_reactive=True)
 
     # Optionally, split filtered data by type for output.
     filtered_dataframes: Dict[Any, pd.DataFrame] = {}
@@ -398,7 +394,7 @@ def get_network_data() -> Dict[str, Any]:
 
     # Compile node information and merge with coordinates and site names.
     all_nodes_df = compile_node_info(circuit_data_filtered, transformer_data_filtered, reactive_data_filtered)
-    all_nodes_df = add_coordinates_and_site_name_to_nodes(all_nodes_df, COORDINATES_FILE_PATH, site_name_mapping)
+    all_nodes_df = add_coordinates_and_site_name_to_nodes(all_nodes_df, config.COORDINATES_FILE_PATH, site_name_mapping)
 
     return {
         'circuit_data_filtered': circuit_data_filtered,
@@ -419,7 +415,7 @@ def main() -> None:
     try:
         data = get_network_data()
         # Write output to an Excel file using xlsxwriter.
-        with pd.ExcelWriter(NETWORK_OUTPUT_FILE_PATH, engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(config.NETWORK_OUTPUT_FILE_PATH, engine="xlsxwriter") as writer:
             # Write the Nodes sheet.
             nodes_sheet_name = "Nodes"
             data['all_nodes_df'].to_excel(writer, sheet_name=nodes_sheet_name, index=False)
@@ -430,7 +426,7 @@ def main() -> None:
                 safe_sheet_name = sheet_name[:31].replace("/", "_").replace("\\", "_")
                 df.to_excel(writer, sheet_name=safe_sheet_name, index=False)
                 logger.info(f"Saved sheet: {safe_sheet_name}")
-        logger.info(f"Processing complete. Data saved to {NETWORK_OUTPUT_FILE_PATH}")
+        logger.info(f"Processing complete. Data saved to {config.NETWORK_OUTPUT_FILE_PATH}")
     except Exception as e:
         logger.exception("An error occurred during processing.")
 

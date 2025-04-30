@@ -40,24 +40,14 @@ import pandas as pd
 import logging
 import sys
 from typing import Dict
-from package.config import (
-    TEC_REGISTER_FILE_PATH,
-    TEC_REGISTER_MAPPING_FILE_PATH,
-    IC_REGISTER_FILE_PATH,
-    IC_REGISTER_MAPPING_FILE_PATH,
-    PLANT_OUTPUT_FILE_PATH,
-    YEAR_OF_ANALYSIS,
-    SELECTED_TAGS,
-    GEN_CAPACITY_FOR_TRANSMISSION
-)
-
-# Import the network data function to retrieve node information.
 from package.data_processing.network_data import get_network_data
+from package.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+config = Config()
 
 def load_csv(file_path: str) -> pd.DataFrame:
     """
@@ -114,10 +104,10 @@ def filter_by_selected_regions(df: pd.DataFrame, df_name: str = "DataFrame") -> 
         logger.warning("'HOST TO' column not found in {df_name}. No filtering applied.")
         return df
 
-    tags_to_include = SELECTED_TAGS.union({"OFTO"})
+    tags_to_include = config.SELECTED_TAGS.union({"OFTO"})
 
     filtered_df = df[df["HOST TO"].isin(tags_to_include)].copy()
-    logger.info(f"Filtering {df_name}. 'HOST TO' options include: {sorted(df['HOST TO'].unique())}. Dataframe of {len(df)} rows to {len(filtered_df)} rows based on SELECTED_TAGS: {SELECTED_TAGS} + 'OFTO' (by default)")
+    logger.info(f"Filtering {df_name}. 'HOST TO' options include: {sorted(df['HOST TO'].unique())}. Dataframe of {len(df)} rows to {len(filtered_df)} rows based on SELECTED_TAGS: {config.SELECTED_TAGS} + 'OFTO' (by default)")
     return filtered_df
 
 def clean_register_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -150,12 +140,12 @@ def clean_register_data(df: pd.DataFrame) -> pd.DataFrame:
         stage = row.get("Stage", "")
 
         if status == "Built":
-            if effective_year is not None and effective_year > YEAR_OF_ANALYSIS:
+            if effective_year is not None and effective_year > config.YEAR_OF_ANALYSIS:
                 return row.get("MW Connected", None)
             else:
                 return row.get("Cumulative Total Capacity (MW)", None)
         else:  # For projects not Built
-            if effective_year is not None and effective_year > YEAR_OF_ANALYSIS:
+            if effective_year is not None and effective_year > config.YEAR_OF_ANALYSIS:
                 return 0
             else:
                 if pd.isna(stage) or stage == "":
@@ -199,7 +189,7 @@ def clean_ic_register_data(df: pd.DataFrame) -> pd.DataFrame:
         effective_year = row["MW Effective From"].year if pd.notnull(row.get("MW Effective From")) else None
         stage = row.get("Stage", "")
         # If effective year is available and is greater than YEAR_OF_ANALYSIS, return zeros.
-        if effective_year is not None and effective_year > YEAR_OF_ANALYSIS:
+        if effective_year is not None and effective_year > config.YEAR_OF_ANALYSIS:
             return 0, 0
         else:
             # When effective year is within the analysis or not provided, use Stage to decide:
@@ -269,7 +259,7 @@ def add_etys_node(df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd.DataFrame:
             # Try to convert 5th digit to integer, invalid ones become NaN
             partial_matches4["5th_digit_num"] = pd.to_numeric(partial_matches4["5th_digit"], errors="coerce")
 
-            if capacity > GEN_CAPACITY_FOR_TRANSMISSION:
+            if capacity > config.GEN_CAPACITY_FOR_TRANSMISSION:
                 # Prefer 5th digit = 2 or 4
                 preferred = partial_matches4[partial_matches4["5th_digit"].isin(["2", "4"])]
                 candidates = preferred if not preferred.empty else partial_matches4
@@ -306,9 +296,9 @@ def add_etys_node(df: pd.DataFrame, nodes_df: pd.DataFrame) -> pd.DataFrame:
             row.get("MW_Export_Capacity", 0) or 0
         )
 
-        if capacity > GEN_CAPACITY_FOR_TRANSMISSION and fifth_digit not in ["2", "4"]:
+        if capacity > config.GEN_CAPACITY_FOR_TRANSMISSION and fifth_digit not in ["2", "4"]:
             logger.warning(
-                f"⚠️ High-capacity project (>{GEN_CAPACITY_FOR_TRANSMISSION}MW) '{row.get('Project Name', 'Unknown')}' "
+                f"⚠️ High-capacity project (>{config.GEN_CAPACITY_FOR_TRANSMISSION}MW) '{row.get('Project Name', 'Unknown')}' "
                 f"assigned to node '{etys_node}' with max capacity={capacity} with 5th digit '{fifth_digit}' not 2 or 4 i.e. not 275 or 400kV."
             )
 
@@ -324,10 +314,10 @@ def process_plant_data() -> Dict[str, pd.DataFrame]:
     logger.info("Processing plant data...")
 
     # Load TEC and IC registers and their mappings.
-    tec_register_df = load_csv(TEC_REGISTER_FILE_PATH)
-    tec_mapping_df = load_csv(TEC_REGISTER_MAPPING_FILE_PATH)
-    ic_register_df = load_csv(IC_REGISTER_FILE_PATH)
-    ic_mapping_df = load_csv(IC_REGISTER_MAPPING_FILE_PATH)
+    tec_register_df = load_csv(config.TEC_REGISTER_FILE_PATH)
+    tec_mapping_df = load_csv(config.TEC_REGISTER_MAPPING_FILE_PATH)
+    ic_register_df = load_csv(config.IC_REGISTER_FILE_PATH)
+    ic_mapping_df = load_csv(config.IC_REGISTER_MAPPING_FILE_PATH)
 
     # Merge Node_Name into registers.
     tec_merged = merge_mapping_with_register(tec_register_df, tec_mapping_df)
@@ -363,11 +353,11 @@ def main() -> None:
         data = process_plant_data()
 
         # Save output to an Excel file with separate sheets for TEC and IC registers.
-        with pd.ExcelWriter(PLANT_OUTPUT_FILE_PATH, engine="xlsxwriter") as writer:
+        with pd.ExcelWriter(config.PLANT_OUTPUT_FILE_PATH, engine="xlsxwriter") as writer:
             data["tec_register"].to_excel(writer, sheet_name="TEC Register", index=False)
             data["ic_register"].to_excel(writer, sheet_name="IC Register", index=False)
 
-        logger.info(f"Plant data processing complete. Output saved to {PLANT_OUTPUT_FILE_PATH}")
+        logger.info(f"Plant data processing complete. Output saved to {config.PLANT_OUTPUT_FILE_PATH}")
 
     except Exception as e:
         logger.exception("An error occurred during plant data processing.")

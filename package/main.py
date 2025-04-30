@@ -9,12 +9,12 @@ into a single output, ready for feeding into a power system model
 
 import os
 import pandas as pd
-from package import config
-
 from package.data_processing.load_data import load_demand_data
 from package.data_processing.network_data import get_network_data
 from package.data_processing.plant_data import process_plant_data
 from package.data_processing.intra_hvdc import process_intra_hvdc_data
+from package.config import Config
+config = Config()
 
 def combine_outputs():
     demand_df = load_demand_data()
