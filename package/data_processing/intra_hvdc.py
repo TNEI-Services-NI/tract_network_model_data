@@ -3,7 +3,10 @@ import logging
 from package.config import Config
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(filename)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 config = Config()
@@ -36,7 +39,7 @@ def process_intra_hvdc_data() -> pd.DataFrame:
     Returns the processed DataFrame.
     """
     try:
-        logger.info(f"Reading sheet 'B-5-1' from {config.ETYSB_FILE_PATH}...")
+        logger.info("Processing internal HVDC link data from ETYS sheet 'B-5-1'...")
         df = pd.read_excel(config.ETYSB_FILE_PATH, sheet_name="B-5-1", header=1)
         df.columns = df.columns.astype(str).str.strip()
         df = filter_by_planned_year(df, config.YEAR_OF_ANALYSIS)

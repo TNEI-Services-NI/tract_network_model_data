@@ -11,8 +11,10 @@ from package.data_processing.network_data import get_network_data
 from typing import Optional
 from package.config import Config
 
-# Configure logging per best practice.
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(filename)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 config = Config()
@@ -76,7 +78,7 @@ def load_demand_data() -> pd.DataFrame:
 
     :return: The filtered and updated pandas DataFrame.
     """
-    logger.info("Starting to load demand data.")
+    logger.info("Loading demand data...")
 
     # Load the CSV file.
     try:
@@ -95,7 +97,6 @@ def load_demand_data() -> pd.DataFrame:
 
     # Convert YEAR_OF_ANALYSIS to two-digit representation.
     year_two_digits = int(str(config.YEAR_OF_ANALYSIS)[-2:])
-    logger.info(f"YEAR_OF_ANALYSIS {config.YEAR_OF_ANALYSIS} converted to two digits: {year_two_digits}.")
 
     # Ensure 'year' column exists and is numeric.
     if "year" not in df.columns:
@@ -109,15 +110,16 @@ def load_demand_data() -> pd.DataFrame:
         (df["scenario"] == config.FES_SCENARIO) &
         (df["type"].isin(config.CONSIDER_DEMAND_TYPES))
         ].copy()
-    logger.info(f"After filtering, {len(filtered_df)} rows remain.")
+    logger.info(f"After filtering to year {year_two_digits}, {len(filtered_df)} rows remain.")
 
     # Retrieve network node data.
+    logger.info(f"Running network_data.py to retrieve node details to populate node column in demand data...")
     nodes_df = get_network_data().get("all_nodes_df", pd.DataFrame())
     if nodes_df.empty:
         logger.warning("No network node data available; skipping ETYS_Node population.")
     else:
         filtered_df = add_etys_node_to_demand(filtered_df, nodes_df)
-        logger.info("ETYS_Node column added to demand data.")
+        logger.info("Node data retrieved and ETYS_Node column successfully added to demand data.")
 
     return filtered_df
 

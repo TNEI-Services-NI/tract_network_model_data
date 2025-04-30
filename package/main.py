@@ -38,12 +38,11 @@ def combine_outputs():
         if not network_nodes_df.empty:
             network_nodes_df.to_excel(writer, sheet_name="Nodes", index=False)
 
-        # Write additional network filtered data sheets.
         for sheet_name, df in network_filtered.items():
             safe_sheet_name = sheet_name[:31].replace("/", "_").replace("\\", "_")
             df.to_excel(writer, sheet_name=safe_sheet_name, index=False)
 
-        # Write plant data sheets: TEC Register and IC Register.
+        # Write plant data sheets: TEC register and IC register.
         tec_register_df.to_excel(writer, sheet_name="TEC Register", index=False)
         ic_register_df.to_excel(writer, sheet_name="IC Register", index=False)
 

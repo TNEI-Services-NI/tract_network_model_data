@@ -44,7 +44,10 @@ from package.data_processing.network_data import get_network_data
 from package.config import Config
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(filename)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 config = Config()
@@ -76,11 +79,11 @@ def merge_mapping_with_register(register_df: pd.DataFrame, mapping_df: pd.DataFr
     logger.info(f"Mapping Columns: {mapping_df.columns.tolist()}")
 
     if "Project Number" not in register_df.columns or "Project Number" not in mapping_df.columns:
-        logger.warning("❌ 'Project Number' column missing in one of the datasets. Exiting.")
+        logger.warning("'Project Number' column missing in one of the datasets. Exiting.")
         sys.exit()
 
     if "Node_Name" not in mapping_df.columns:
-        logger.warning("❌ 'Node_Name' column missing in mapping dataset. Exiting.")
+        logger.warning("'Node_Name' column missing in mapping dataset. Exiting.")
         sys.exit()
 
     merged_df = register_df.merge(
@@ -89,10 +92,10 @@ def merge_mapping_with_register(register_df: pd.DataFrame, mapping_df: pd.DataFr
         how="left"
     )
 
-    logger.info(f"✅ Merged register with mapping file. Final row count: {len(merged_df)}")
+    logger.info(f"Merged register with mapping file. Final row count: {len(merged_df)}")
     return merged_df
 
-def filter_by_selected_regions(df: pd.DataFrame, df_name: str = "DataFrame") -> pd.DataFrame:
+def filter_by_selected_regions(df: pd.DataFrame, df_name: str = "_") -> pd.DataFrame:
     """
     Filters the provided DataFrame to include rows where 'HOST TO' is in the SELECTED_TAGS list,
     always including 'OFTO' entries by default.

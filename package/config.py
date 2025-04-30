@@ -2,10 +2,11 @@ import os
 from datetime import datetime
 
 class Config:
-    def __init__(self, YEAR_OF_ANALYSIS=2029):
+    def __init__(self, YEAR_OF_ANALYSIS=2035):
         # ---------------------------
         # Network Model Data Collation Configuration
         # ---------------------------
+
         self.YEAR_OF_ANALYSIS = YEAR_OF_ANALYSIS
         self.FES_SCENARIO = "HT"
         # Applies to demand only

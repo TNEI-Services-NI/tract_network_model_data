@@ -14,7 +14,10 @@ from package.config import Config
 
 
 # Configure logging to include timestamps, log level and message.
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(filename)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 config = Config()
@@ -87,15 +90,14 @@ def parse_all_sheets(file_path: str, rename_map: Dict[str, str]) -> Dict[str, pd
     :param rename_map: Dictionary mapping original column names to standardised names.
     :return: A dictionary mapping sheet names to their corresponding DataFrames.
     """
-    logger.info("Loading and parsing Excel file...")
+    logger.info("Loading and parsing ETYS AppB excel file...")
     try:
         xls = pd.ExcelFile(file_path)
         sheets_dict: Dict[str, pd.DataFrame] = {}
         for sheet_name in xls.sheet_names:
-            logger.info(f"Parsing sheet: {sheet_name}")
             df = xls.parse(sheet_name, header=1)
             df.columns = df.columns.astype(str).str.strip() # Strip to ensure column names are clean strings.
-            logger.info(f"Columns in '{sheet_name}': {df.columns.tolist()}")
+            logger.info(f"Parsed sheet: {sheet_name} with columns: {df.columns.tolist()}")
             df.rename(columns=rename_map, inplace=True)
             sheets_dict[sheet_name] = df
         return sheets_dict
@@ -167,7 +169,7 @@ def concatenate_and_process_sheets(sheets_data: Dict[str, pd.DataFrame]) -> Tupl
         raise
 
 
-def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactive: bool = False) -> pd.DataFrame:
+def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactive: bool = False, df_name: str = "_") -> pd.DataFrame:
     """
     Filter rows based on 'Status' and 'Year' columns.
 
@@ -182,7 +184,6 @@ def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactiv
     :param is_reactive: Whether the DataFrame is reactive data (affects column selection).
     :return: Filtered DataFrame.
     """
-    logger.info("Filtering data based on status and year.")
     filtered_rows = []
     for _, row in df.iterrows():
         status = row.get("Status")
@@ -214,7 +215,7 @@ def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactiv
                 ]
             filtered_rows.append(row)
     result_df = pd.DataFrame(filtered_rows, columns=df.columns)
-    logger.info("Data filtering completed.")
+    logger.info(f"{df_name} filtering completed by status for year: {year}.")
     return result_df
 
 
@@ -382,9 +383,9 @@ def get_network_data() -> Dict[str, Any]:
 
     # Concatenate and filter data.
     circuit_data, transformer_data, reactive_data = concatenate_and_process_sheets(relevant_sheets_data)
-    circuit_data_filtered = filter_data_based_on_status_and_year(circuit_data, config.YEAR_OF_ANALYSIS)
-    transformer_data_filtered = filter_data_based_on_status_and_year(transformer_data, config.YEAR_OF_ANALYSIS)
-    reactive_data_filtered = filter_data_based_on_status_and_year(reactive_data, config.YEAR_OF_ANALYSIS, is_reactive=True)
+    circuit_data_filtered = filter_data_based_on_status_and_year(circuit_data, config.YEAR_OF_ANALYSIS, df_name = "Circuit data")
+    transformer_data_filtered = filter_data_based_on_status_and_year(transformer_data, config.YEAR_OF_ANALYSIS, df_name = "Transformer data")
+    reactive_data_filtered = filter_data_based_on_status_and_year(reactive_data, config.YEAR_OF_ANALYSIS, is_reactive=True, df_name = "Reactive plant data")
 
     # Optionally, split filtered data by type for output.
     filtered_dataframes: Dict[Any, pd.DataFrame] = {}
