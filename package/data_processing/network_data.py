@@ -435,11 +435,6 @@ def get_network_data() -> Dict[str, Any]:
     filtered_dataframes.update(split_data_by_type(transformer_data_filtered, "Transformer Type"))
     filtered_dataframes.update(split_data_by_type(reactive_data_filtered, "Compensation Type"))
 
-    print(circuit_data_filtered[
-              circuit_data_filtered["Node 1"].isin(["DINO41", "PENT41"]) | circuit_data_filtered["Node 2"].isin(
-                  ["DINO41", "PENT41"])])
-
-
     # Compile node information and merge with coordinates and site names.
     all_nodes_df = compile_node_info(circuit_data_filtered, transformer_data_filtered, reactive_data_filtered)
     all_nodes_df = add_coordinates_and_site_name_to_nodes(all_nodes_df, config.COORDINATES_FILE_PATH, site_name_mapping)
