@@ -9,6 +9,7 @@ warnings.filterwarnings("ignore", message="Cannot parse header or footer so it w
 
 import pandas as pd
 import logging
+from datetime import datetime
 from typing import Dict, List, Set, Any, Tuple
 from package.config import Config
 
@@ -169,54 +170,95 @@ def concatenate_and_process_sheets(sheets_data: Dict[str, pd.DataFrame]) -> Tupl
         raise
 
 
+# def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactive: bool = False, df_name: str = "_") -> pd.DataFrame:
+#     """
+#     Filter rows based on 'Status' and 'Year' columns.
+#
+#     - Rows with missing Status or Year are included.
+#     - Rows with a Year greater than the target are excluded.
+#     - For rows with Status "Addition", the row is kept.
+#     - For "Removed" rows, any matching rows already in the filtered set are removed.
+#     - For "Change" rows, any matching rows are removed and the new row is added.
+#
+#     :param df: The DataFrame to filter.
+#     :param year: The target year for analysis.
+#     :param is_reactive: Whether the DataFrame is reactive data (affects column selection).
+#     :return: Filtered DataFrame.
+#     """
+#     filtered_rows = []
+#     for _, row in df.iterrows():
+#         status = row.get("Status")
+#         row_year = row.get("Year")
+#         # Include row if Status or Year is missing.
+#         if pd.isna(status) or pd.isna(row_year):
+#             filtered_rows.append(row)
+#             continue
+#         # Exclude rows beyond the target year.
+#         if row_year > year:
+#             continue
+#         if status == "Addition":
+#             filtered_rows.append(row)
+#         elif status == "Removed":
+#             if is_reactive:
+#                 filtered_rows = [r for r in filtered_rows if r.get("Node") != row.get("Node")]
+#             else:
+#                 filtered_rows = [
+#                     r for r in filtered_rows
+#                     if (r.get("Node 1"), r.get("Node 2")) != (row.get("Node 1"), row.get("Node 2"))
+#                 ]
+#         elif status == "Change":
+#             if is_reactive:
+#                 filtered_rows = [r for r in filtered_rows if r.get("Node") != row.get("Node")]
+#             else:
+#                 filtered_rows = [
+#                     r for r in filtered_rows
+#                     if (r.get("Node 1"), r.get("Node 2")) != (row.get("Node 1"), row.get("Node 2"))
+#                 ]
+#             filtered_rows.append(row)
+#     result_df = pd.DataFrame(filtered_rows, columns=df.columns)
+#     logger.info(f"{df_name} filtering completed by status for year: {year}.")
+#     return result_df
+
 def filter_data_based_on_status_and_year(df: pd.DataFrame, year: int, is_reactive: bool = False, df_name: str = "_") -> pd.DataFrame:
-    """
-    Filter rows based on 'Status' and 'Year' columns.
-
-    - Rows with missing Status or Year are included.
-    - Rows with a Year greater than the target are excluded.
-    - For rows with Status "Addition", the row is kept.
-    - For "Removed" rows, any matching rows already in the filtered set are removed.
-    - For "Change" rows, any matching rows are removed and the new row is added.
-
-    :param df: The DataFrame to filter.
-    :param year: The target year for analysis.
-    :param is_reactive: Whether the DataFrame is reactive data (affects column selection).
-    :return: Filtered DataFrame.
-    """
     filtered_rows = []
+
     for _, row in df.iterrows():
         status = row.get("Status")
         row_year = row.get("Year")
-        # Include row if Status or Year is missing.
+
+        # Include row if Status or Year is missing
         if pd.isna(status) or pd.isna(row_year):
             filtered_rows.append(row)
             continue
-        # Exclude rows beyond the target year.
+
+        # Exclude if beyond analysis year
         if row_year > year:
             continue
+
+        # Define matching logic
+        if is_reactive:
+            key_cols = ["Node", "Compensation Type"]
+        elif "Transformer Type" in row:
+            key_cols = ["Node 1", "Node 2", "Transformer Type"]
+        else:
+            key_cols = ["Node 1", "Node 2", "Circuit Type"]
+
+        row_key = tuple(row.get(col) for col in key_cols)
+
         if status == "Addition":
             filtered_rows.append(row)
-        elif status == "Removed":
-            if is_reactive:
-                filtered_rows = [r for r in filtered_rows if r.get("Node") != row.get("Node")]
-            else:
-                filtered_rows = [
-                    r for r in filtered_rows
-                    if (r.get("Node 1"), r.get("Node 2")) != (row.get("Node 1"), row.get("Node 2"))
-                ]
-        elif status == "Change":
-            if is_reactive:
-                filtered_rows = [r for r in filtered_rows if r.get("Node") != row.get("Node")]
-            else:
-                filtered_rows = [
-                    r for r in filtered_rows
-                    if (r.get("Node 1"), r.get("Node 2")) != (row.get("Node 1"), row.get("Node 2"))
-                ]
-            filtered_rows.append(row)
-    result_df = pd.DataFrame(filtered_rows, columns=df.columns)
-    logger.info(f"{df_name} filtering completed by status for year: {year}.")
-    return result_df
+
+        elif status in {"Removed", "Change"}:
+            for i, existing_row in enumerate(filtered_rows):
+                existing_key = tuple(existing_row.get(col) for col in key_cols)
+                if existing_key == row_key:
+                    del filtered_rows[i]
+                    break
+            if status == "Change":
+                filtered_rows.append(row)
+
+    logger.info(f"{df_name} filtering completed by status for year: {year}. Count of rows in dataframe: {len(filtered_rows)}")
+    return pd.DataFrame(filtered_rows, columns=df.columns)
 
 
 def split_data_by_type(df: pd.DataFrame, column: str) -> Dict[Any, pd.DataFrame]:
@@ -392,6 +434,11 @@ def get_network_data() -> Dict[str, Any]:
     filtered_dataframes.update(split_data_by_type(circuit_data_filtered, "Circuit Type"))
     filtered_dataframes.update(split_data_by_type(transformer_data_filtered, "Transformer Type"))
     filtered_dataframes.update(split_data_by_type(reactive_data_filtered, "Compensation Type"))
+
+    print(circuit_data_filtered[
+              circuit_data_filtered["Node 1"].isin(["DINO41", "PENT41"]) | circuit_data_filtered["Node 2"].isin(
+                  ["DINO41", "PENT41"])])
+
 
     # Compile node information and merge with coordinates and site names.
     all_nodes_df = compile_node_info(circuit_data_filtered, transformer_data_filtered, reactive_data_filtered)
